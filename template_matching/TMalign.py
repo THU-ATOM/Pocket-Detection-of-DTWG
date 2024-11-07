@@ -81,33 +81,42 @@ class TMaligner:
 
 if __name__ == "__main__":
 
-    thread_cnt=10
-    thread_id=1
+    # for manual multi node calculation
+    # thread_cnt=10
+    # thread_id=1
 
-    AF2_dir="/project/HumanProt_AF2_domains/"
-    PDBBind_list="/project/pdbbbind_receptor_only/"
-    output_dir="/project/DTWG_AF2"
+    # AF2_dir is the directory of AF2 domains. Domains are stored in pdb format.
+    # PDBBind_list is the directory of PDBBind proteins. Proteins are stored in pdb format.
 
+    AF2_dir="/data/Plasmodium_screening/AF2_domains"
+    PDBBind_list="/data/DTWG_pdbbind_receptor_only"
+    output_dir="/data/Plasmodium_screening/template_matching_result/tmalign_output"
+    
     AF2_list=glob.glob(AF2_dir+"/*.pdb")
     PDBBind_list=glob.glob(PDBBind_list+"/*.pdb")
     AF2_list.sort()
     PDBBind_list.sort()
-    new_AF2_list=[]
-    for i,AF2 in enumerate(AF2_list):
-        if i%thread_cnt==thread_id:
-            new_AF2_list.append(AF2)
-    AF2_list=new_AF2_list
+
+    # for manual multi node calculation
+    # new_AF2_list=[]
+    # for i,AF2 in enumerate(AF2_list):
+    #     if i%thread_cnt==thread_id:
+    #         new_AF2_list.append(AF2)
+    # AF2_list=new_AF2_list
+
+
     print("number of AF2 proteins:",len(AF2_list))
     print("number of PDBBind proteins:",len(PDBBind_list))
 
     def run(AF2_item):
         res=[]
         tmaligner=TMaligner()
-        for pdbbind_item in PDBBind_list:
+        for pdbbind_item in tqdm(PDBBind_list):
             result=tmaligner.align(pdbbind_item,AF2_item)
             result["AF2"]=AF2_item.split("/")[-1].split(".")[0]
             result["PDBBind"]=pdbbind_item.split("/")[-1].split(".")[0]
-            res.append(result)
+            if result["TMscore2"]>0.5:
+                res.append(result)
         # save 
         with open(os.path.join(output_dir,AF2_item.split("/")[-1].split(".")[0]+".pkl"),"wb") as f:
             pickle.dump(res,f)
