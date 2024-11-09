@@ -1,4 +1,4 @@
-from Drug_The_Whole_Genome.utils.utils import read_mol2_ligand,merge_chains,get_binding_pockets,getfpockets,IoU,write_lmdb,pdb2dict,save_pdb
+from utils.utils import read_mol2_ligand,merge_chains,get_binding_pockets,getfpockets,IoU,write_lmdb,pdb2dict,save_pdb
 import os
 import numpy as np
 from tqdm import tqdm
@@ -8,7 +8,7 @@ import warnings
 from Bio.PDB.PDBExceptions import PDBConstructionWarning,BiopythonWarning
 import shutil
 import glob
-from Drug_The_Whole_Genome.utils.Dataset import DTWG_DUDEDataset
+from utils.Dataset import DTWG_DUDEDataset
 from copy import deepcopy
 
 warnings.filterwarnings(

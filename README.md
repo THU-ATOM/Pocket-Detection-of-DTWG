@@ -28,5 +28,6 @@ In this method, we use the [PDBBind](http://www.pdbbind.org.cn/) database as the
 
 - Pocket matching code: `./template_matching/pocket_match.py` this code filters the pocket with the rotation matrix and calculate the IOU
 
-- clash_detection code: `./template_matching/clash_detection.ipynb` this code remove the cases with clashes
+- relax code: `./template_matching/relax.py` this code relax the protein-ligand complex
 
+- remove illegal complex code: `./template_matching/remove_illegal_complex.py` this code removes the illegal complex with the ligand
