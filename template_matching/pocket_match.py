@@ -35,7 +35,7 @@ def get_pocket_match_rate(item,AF2_dir,PDBBind_dir,ligand_dir,pocket_position_di
     pdbbbind_seq,AF2_seq=remove_gaps(pdbbind_seq,AF2_seq)
     position_file=os.path.join(pocket_position_dir,item["PDBBind"]+".txt")
     if not os.path.exists(position_file):
-        return -1
+        raise Exception("position file not found")
     with open(position_file,"r") as f:
         pdbbbind_seq2=f.readline().strip()
         pocket_pos=f.readline().strip()
@@ -121,7 +121,7 @@ def process_AF2_item(AF2_item, output_dir, new_TMalign_result_dir, ligand_dir, A
     single_chain_ids=pickle.load(open(single_chain_dir,"rb"))
     pos_to_id=get_pos_to_id(os.path.join(AF2_dir, AF2_item.split("/")[-1].replace(".pkl",".pdb")))
     pocket_cluster = []
-    for item in res_list:
+    for item in tqdm(res_list):
         if item["PDBBind"] not in single_chain_ids:
             continue
         try:
@@ -187,18 +187,18 @@ def process_AF2_item(AF2_item, output_dir, new_TMalign_result_dir, ligand_dir, A
             print(e)
             pass
 
-    # new_result_file = os.path.join(new_TMalign_result_dir, os.path.basename(AF2_item))
-    # with open(new_result_file, "wb") as f:
-    #     pickle.dump(new_res, f)
+    new_result_file = os.path.join(new_TMalign_result_dir, os.path.basename(AF2_item))
+    with open(new_result_file, "wb") as f:
+        pickle.dump(new_res, f)
     return None
 
 if __name__ == "__main__":
-    TMalign_result_dir = "/data/DTWG_AF2_TM05"
-    output_dir = "/data/DTWG_AF2_sdf"
-    new_TMalign_result_dir = "/data/DTWG_AF2_TM05_IOU06"
+    TMalign_result_dir = "/data/Plasmodium_screening/template_matching_result/tmalign_output"
+    output_dir = "/data/Plasmodium_screening/template_matching_result/result"
+    new_TMalign_result_dir = "/data/Plasmodium_screening/template_matching_result/tmalign_output_iou06"
     ligand_dir = "/data/pdbbind_2020/pdbbind_ligand_only"
-    AF2_dir = "/data/AF2DB/HumanProt_AF2_domains/"
-    PDBBind_dir = "/data/pdbbind_2020/pdbbind_receptor_only"
+    AF2_dir = "/data/Plasmodium_screening/AF2_domains"
+    PDBBind_dir = "/data/DTWG_pdbbind_receptor_only"
     pocket_position_dir = "/data/pdbbind_2020/pdbbind_pocket6A_position"
     single_chain_dir = "/data/pdbbind_2020/single_chain_pocket10A.pkl"
 
@@ -218,6 +218,12 @@ if __name__ == "__main__":
     pool = Pool()
 
     pool.starmap(process_AF2_item, [(AF2_item, output_dir, new_TMalign_result_dir, ligand_dir, AF2_dir, PDBBind_dir, pocket_position_dir,single_chain_dir) for AF2_item in TMalign_results])
+
+    ####### 
+    # debug
+    # for AF2_item in TMalign_results:
+    #     process_AF2_item(AF2_item, output_dir, new_TMalign_result_dir, ligand_dir, AF2_dir, PDBBind_dir, pocket_position_dir,single_chain_dir)
+    #######
 
     pool.close()
     pool.join()

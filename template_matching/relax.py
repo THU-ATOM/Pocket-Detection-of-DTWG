@@ -8,7 +8,7 @@ from rdkit.Chem import SDMolSupplier, MolToPDBBlock
 from multiprocessing import Pool
 import time
 
-SCHRODINGER = '/project/schrodinger2021-2'
+SCHRODINGER = '/opt/schrodinger2021-2'
 from Bio import PDB
 from Bio.PDB import PDBIO
 from rdkit import Chem
@@ -16,46 +16,50 @@ from rdkit.Chem import AllChem
 import io
 
 def generate_complex_pdb(protein_file, ligand_file, output_file):
-    # Step 1: Read the protein PDB file
-    parser = PDB.PDBParser(QUIET=True)
-    structure = parser.get_structure('protein', protein_file)
-    
-    # Merge all chains into a single chain 'A'
-    first_model = structure[0]
-    new_chain = PDB.Chain.Chain('A')
-    for chain in first_model:
-        for residue in chain:
-            new_chain.add(residue)
-    
-    # Create a new structure with a single chain
-    new_structure = PDB.Structure.Structure('merged_protein')
-    new_model = PDB.Model.Model(0)
-    new_model.add(new_chain)
-    new_structure.add(new_model)
-    
-    # Step 2: Read the ligand SDF file and convert to PDB format
-    ligand_mol = Chem.MolFromMolFile(ligand_file)
-    if ligand_mol is None:
-        raise ValueError(f"Failed to read ligand from {ligand_file}")
-    
-    # Convert ligand to PDB format
-    ligand_pdb_block = Chem.MolToPDBBlock(ligand_mol)
-    
-    # Step 3: Read the ligand PDB block and set the chain ID to 'B'
-    ligand_structure = parser.get_structure('ligand', io.StringIO(ligand_pdb_block))
-    for model in ligand_structure:
-        for chain in model:
-            chain.id = 'B'
-    
-    # Step 4: Merge the protein and ligand structures
-    for model in ligand_structure:
-        for chain in model:
-            new_structure[0].add(chain)
-    
-    # Write the merged structure to the output PDB file
-    pdb_io = PDB.PDBIO()
-    pdb_io.set_structure(new_structure)
-    pdb_io.save(output_file)
+    try:
+        # Step 1: Read the protein PDB file
+        parser = PDB.PDBParser(QUIET=True)
+        structure = parser.get_structure('protein', protein_file)
+        
+        # Merge all chains into a single chain 'A'
+        first_model = structure[0]
+        new_chain = PDB.Chain.Chain('A')
+        for chain in first_model:
+            for residue in chain:
+                new_chain.add(residue)
+        
+        # Create a new structure with a single chain
+        new_structure = PDB.Structure.Structure('merged_protein')
+        new_model = PDB.Model.Model(0)
+        new_model.add(new_chain)
+        new_structure.add(new_model)
+        
+        # Step 2: Read the ligand SDF file and convert to PDB format
+        ligand_mol = Chem.MolFromMolFile(ligand_file)
+        if ligand_mol is None:
+            raise ValueError(f"Failed to read ligand from {ligand_file}")
+        
+        # Convert ligand to PDB format
+        ligand_pdb_block = Chem.MolToPDBBlock(ligand_mol)
+        
+        # Step 3: Read the ligand PDB block and set the chain ID to 'B'
+        ligand_structure = parser.get_structure('ligand', io.StringIO(ligand_pdb_block))
+        for model in ligand_structure:
+            for chain in model:
+                chain.id = 'B'
+        
+        # Step 4: Merge the protein and ligand structures
+        for model in ligand_structure:
+            for chain in model:
+                new_structure[0].add(chain)
+        
+        # Write the merged structure to the output PDB file
+        pdb_io = PDB.PDBIO()
+        pdb_io.set_structure(new_structure)
+        pdb_io.save(output_file)
+    except Exception as e:
+        print("Error:", e)
+        pass
 
 
 
@@ -182,9 +186,9 @@ if __name__ == "__main__":
     # ligand_dir="/data/AF2DB/HumanProt_AF2_fpocket_distributed/HumanProt_AF2_fpocket_BFN_part_0/"
     # output_dir="/data/AF2DB/tmp"
 
-    protein_dir="/project/HumanProt_AF2_domains"
-    ligand_dir="/project/DTWG_AF2_homoaug"
-    output_dir="/project/DTWG_AF2_homoaug_complex"
+    protein_dir="/data/Plasmodium_screening/AF2_domains"
+    ligand_dir="/data/Plasmodium_screening/template_matching_result/output_ligands"
+    output_dir="/data/Plasmodium_screening/template_matching_result/output_complex"
 
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
@@ -195,6 +199,8 @@ if __name__ == "__main__":
         protein_file=os.path.join(protein_dir,"_".join(os.path.basename(item).split("_")[:3])+".pdb")
         print("protein_dir",protein_file)
         output_file=os.path.join(output_dir,os.path.basename(item).replace('.sdf','_complex.pdb'))
+        if os.path.exists(output_file):
+            continue
         generate_complex_pdb(
             protein_file=protein_file,
             ligand_file=item,
@@ -206,7 +212,15 @@ if __name__ == "__main__":
     complex_list=[x for x in glob.glob(output_dir+"/*.pdb") if not "refined" in x]
     for item in tqdm(complex_list):
         task_list.append((os.path.dirname(item),os.path.basename(item),'local_refine'))
-    with Pool(128) as p:
-        results = p.starmap(relax, task_list)
+    # with Pool(128) as p:
+    #     results = p.starmap(relax, task_list)
+
+    ##########
+    # debug
+    results=[]
+    for task in task_list:
+        results.append(relax(*task))
+    ##########
+
     print(results)
     print("mean time cost:",sum(results)/len(results))

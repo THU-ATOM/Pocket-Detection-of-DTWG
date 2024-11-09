@@ -121,5 +121,7 @@ if __name__ == "__main__":
         with open(os.path.join(output_dir,AF2_item.split("/")[-1].split(".")[0]+".pkl"),"wb") as f:
             pickle.dump(res,f)
     
-    with Pool(200) as p:
+    with Pool(500) as p:
         p.map(run, AF2_list)
+
+    print("done")
