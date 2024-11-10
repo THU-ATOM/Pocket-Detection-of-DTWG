@@ -182,34 +182,34 @@ HOST	localhost:1
 
 if __name__ == "__main__":
 
-    # protein_dir="/data/AF2DB/HumanProt_AF2_domains"
-    # ligand_dir="/data/AF2DB/HumanProt_AF2_fpocket_distributed/HumanProt_AF2_fpocket_BFN_part_0/"
-    # output_dir="/data/AF2DB/tmp"
-
     protein_dir="/data/Plasmodium_screening/AF2_domains"
-    ligand_dir="/data/Plasmodium_screening/template_matching_result/output_ligands"
-    output_dir="/data/Plasmodium_screening/template_matching_result/output_complex"
+    bfn_output_dir="/data/Plasmodium_screening/genpack_result/bfn_output"
 
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
-    ligand_list=glob.glob(ligand_dir+"/*.sdf")
+    pocket_list=[f for f in glob.glob(bfn_output_dir+"/*") if os.path.isdir(f)]
 
     # generate complex pdb    
-    for item in tqdm(ligand_list):
+    for item in tqdm(pocket_list):
+        ligand_files=glob.glob(os.path.join(item,"*.sdf"))
         protein_file=os.path.join(protein_dir,"_".join(os.path.basename(item).split("_")[:3])+".pdb")
         print("protein_dir",protein_file)
-        output_file=os.path.join(output_dir,os.path.basename(item).replace('.sdf','_complex.pdb'))
-        if os.path.exists(output_file):
-            continue
-        generate_complex_pdb(
-            protein_file=protein_file,
-            ligand_file=item,
-            output_file=output_file
-        )
+
+        for ligand_file in ligand_files:
+            output_file=os.path.join(item,os.path.basename(ligand_file).replace('.sdf','_complex.pdb'))
+            if os.path.exists(output_file):
+                continue
+            generate_complex_pdb(
+                protein_file=protein_file,
+                ligand_file=ligand_file,
+                output_file=output_file
+            )
+
 
     # relax pdb 
     task_list=[]
-    complex_list=[x for x in glob.glob(output_dir+"/*.pdb") if not "refined" in x]
+    complex_list=[]
+    for item in tqdm(pocket_list):
+        complex_list+=[x for x in glob.glob(item+"/*.pdb") if not "refined" in x]
+    print("total complex:",len(complex_list))
     for item in tqdm(complex_list):
         task_list.append((os.path.dirname(item),os.path.basename(item),'local_refine'))
     with Pool(128) as p:
